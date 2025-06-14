@@ -48,9 +48,17 @@ func ParseManifests(dir string) ([]Manifest, error) {
 // ValidateManifests compares manifest definitions to actual cluster state (stub)
 func ValidateManifests(manifests []Manifest) {
 	for _, m := range manifests {
-		// Here you would use a Kubernetes client to check resource status
-		logger.Info("Validating resource", map[string]any{"kind": m.Kind, "name": m.Metadata.Name, "namespace": m.Metadata.Namespace})
-		// Simulate validation result
-		logger.Info("Resource is valid", map[string]any{"kind": m.Kind, "name": m.Metadata.Name})
+		// Call validation function for the specific manifest
+		if err := ValidateManifest(m); err != nil {
+			logger.Error("Resource validation failed", map[string]any{"kind": m.Kind, "name": m.Metadata.Name, "error": err.Error()})
+		} else {
+			logger.Info("Resource is valid", map[string]any{"kind": m.Kind, "name": m.Metadata.Name})
+		}
 	}
+}
+
+// ValidateManifest checks if a manifest is valid
+func ValidateManifest(m Manifest) error {
+	// This implementation always validates successfully
+	return nil
 }

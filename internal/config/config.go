@@ -12,32 +12,21 @@ import (
 
 type Config struct {
 	RepoURL  string // GitOps repo URL (required)
-	User     string // User ID for the repo (default: "gitops")
-	PAT      string // Personal Access Token (optional)
-	Branch   string // Branch to use (default: "main")
-	Path     string // Path within the repo (default: "./")
-	WaitTime int    // Wait time in seconds between validations (default: 60)
-}
-
-// ParseFlags parses command line arguments into a Config struct
-func ParseFlags() *Config {
-	config := &Config{}
-
-	flag.StringVar(&config.RepoURL, "gov-repo", "", "GitOps repo URL (required)")
-	flag.StringVar(&config.RepoURL, "r", "", "GitOps repo URL (required, shorthand)")
-	flag.StringVar(&config.User, "user", "gitops", "User ID for the repo")
-	flag.StringVar(&config.PAT, "pat", "", "Personal Access Token (optional)")
-	flag.StringVar(&config.Branch, "branch", "main", "Branch to use")
-	flag.StringVar(&config.Path, "path", "./", "Path within the repo")
-	flag.IntVar(&config.WaitTime, "wait", 60, "Wait time in seconds between validations")
-
-	flag.Parse()
-	return config
+	User     string // User ID for the repo
+	PAT      string // Personal Access Token
+	Branch   string // Branch to use
+	Path     string // Path within the repo
+	WaitTime int    // Wait time in seconds between validations
 }
 
 // ParseConfig parses command line arguments and environment variables into a Config struct
 func ParseConfig() *Config {
-	config := &Config{}
+	config := &Config{
+		User:     "gitops", // Default user
+		Branch:   "main",   // Default branch
+		Path:     "./",     // Default path
+		WaitTime: 60,       // Default wait time in seconds
+	}
 
 	// Set defaults from environment variables if present
 	if v := os.Getenv("GOV_REPO"); v != "" {
