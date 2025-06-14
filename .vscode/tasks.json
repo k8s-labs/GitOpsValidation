@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build gov app",
+			"type": "shell",
+			"command": "go build -o bin/gov ./cmd/gov",
+			"group": "build",
+			"problemMatcher": [],
+			"args": []
+		}
+	]
+}
