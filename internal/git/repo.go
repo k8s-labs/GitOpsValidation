@@ -28,9 +28,11 @@ func CloneRepo(opts CloneOptions) error {
 	args := []string{"clone", "--branch", opts.Branch, url, opts.Dir}
 	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
+
 	if err != nil {
 		return fmt.Errorf("git clone failed: %v, output: %s", err, string(output))
 	}
+
 	return nil
 }
 

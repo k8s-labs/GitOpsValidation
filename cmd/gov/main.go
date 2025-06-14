@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Change to the specified path within the repo if needed
-	if err := git.ChangeToPath(repoDir, ""); err != nil {
+	if err := git.ChangeToPath(repoDir, cfg.Path); err != nil {
 		logger.Fatal("Failed to change to repository path", map[string]any{"error": err.Error()})
 	}
 
