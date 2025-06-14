@@ -1,82 +1,86 @@
-# Product Requirements Document (PRD): GitOps Validation (gov)
+# Product Requirements Document: GitOps Validation (gov)
 
 ## Introduction/Overview
 
-gov is a Kubernetes-native application that validates the deployment of Flux GitOps manifests on a target Kubernetes cluster. Its primary goal is to ensure that the actual state of the cluster matches the desired state as defined in a GitOps repository, providing continuous validation, structured logging, and operational metrics for platform teams.
+The GitOps Validation (gov) application is a monitoring solution designed to validate that Flux GitOps manifests are deployed correctly within a Kubernetes cluster. It serves as a continuous validation tool that ensures the integrity and proper functioning of GitOps deployments by regularly checking the state of Flux resources against their expected configurations. This tool addresses the common challenge of detecting drift or failed deployments in GitOps-managed environments.
 
 ## Goals
 
-- Validate that all namespaces, services, deployments, and pods defined in the GitOps repository are present and running on the cluster.
-- Detect and log any resources present on the cluster but not defined in the GitOps repository.
-- Provide JSON structured logs for information, warnings, errors, and fatal events.
-- Expose Prometheus metrics for monitoring.
-- Provide a /healthz endpoint for Kubernetes health checks.
-- Support flexible configuration via command line arguments and environment variables.
-- Operate reliably as a Kubernetes deployment, following K8s best practices for lifecycle and security.
+1. Provide real-time validation of Flux GitOps manifests deployed in a Kubernetes cluster
+2. Detect and report any discrepancies between expected and actual states of GitOps resources
+3. Offer robust monitoring capabilities with structured logging and metrics exposure
+4. Operate with minimal resource overhead within the target Kubernetes cluster
+5. Support standard Kubernetes operational practices (health checks, graceful shutdown, etc.)
+6. Allow flexible configuration through both environment variables and command-line parameters
 
 ## User Stories
 
-- As a platform engineer, I want to automatically validate that my cluster matches the desired state in my GitOps repo, so that I can ensure compliance and reliability.
-- As an operator, I want to be alerted to any resources that are present on the cluster but not in the repo, so that I can investigate potential configuration drift.
-- As a developer, I want to configure gov using environment variables or command line options, so that I can easily integrate it into different environments.
-- As an SRE, I want to monitor gov's health and metrics using Prometheus and Kubernetes health checks.
+- As a DevOps engineer, I want to automatically validate that my Flux GitOps configurations are deployed correctly, so that I can quickly identify and resolve any issues in my GitOps workflow.
+- As a platform administrator, I need to know when Flux deployments have failed or drifted from their expected state, so that I can maintain system reliability.
+- As a Kubernetes operator, I want to monitor the health of my GitOps pipeline, so that I can ensure continuous delivery works as expected.
+- As a developer, I want insight into the state of GitOps deployments, so that I can understand if my changes were successfully applied to the cluster.
 
 ## Functional Requirements
 
-1. The system must accept configuration via command line arguments and environment variables, with command line taking precedence.
-2. Environment variables must be of the form GOV_NAMESPACE, GOV_SOURCE, etc.; command line params must be of the form --namespace/-n, --source/-s, etc.
-3. The system must support the following parameters:
-   - namespace (-n): Kubernetes namespace Flux is deployed to (default: flux-system)
-   - source (-s): Flux source repo (default: gitops, must be GitHub via https)
-   - kustomization (-k): Base Kustomization (default: flux-listeners)
-   - wait time: seconds between validations (default: 60)
-4. On startup, gov must log a starting message and validate all parameters, exiting with error code 1 on failure.
-5. The system must use the Kubernetes API to validate the namespace, retrieve the Flux source and kustomization, and extract repo URL, userId, branch, and PAT (from k8s secret).
-6. The system must clone and pull the GitOps repo using the provided credentials. If the gitops directory doesn't exist, clone it; otherwise, pull the latest changes.
-7. The system must change the current directory to ./gitops and log errors if unsuccessful.
-8. The system must validate that the namespace, Flux source, and kustomization exist and that the kustomization ran without issues.
-9. The system must log information for each valid deployment and warnings for resources present on the cluster but not in the repo.
-10. The system must repeat the validation process at the configured interval until stopped.
-11. The system must use JSON structured logging for all log levels.
-12. The system must expose Prometheus metrics.
-13. The system must provide a /healthz web endpoint for Kubernetes health checks.
-14. The system must follow Kubernetes best practices for startup, health checks, shutdown, and logging.
-15. When run from the command line, gov must assume kubectl is configured and has necessary permissions.
+1. The system must provide a Go application that can be deployed as a Kubernetes pod within the cluster it is validating.
+2. The system must validate that the specified Flux namespace exists in the Kubernetes cluster.
+3. The system must validate that the specified Flux Source resource exists and is properly configured.
+4. The system must validate that the specified Flux Kustomization resource exists and ran without issues.
+5. The system must support connecting to GitHub repositories via HTTPS, with support for both public and private repositories (with PAT authentication).
+6. The system must clone and pull from the GitOps repository to get the latest configuration.
+7. The system must perform validation checks at a configurable interval (default: 60 seconds).
+8. The system must provide JSON structured logging for Information, Warning, Error, and Fatal events.
+9. The system must expose Prometheus metrics for monitoring purposes.
+10. The system must provide a `/healthz` web endpoint for Kubernetes health checks.
+11. The system must support configuration through environment variables (prefixed with `GOV_`) and command-line options.
+12. The system must recognize command-line parameters taking precedence over environment variables, which take precedence over default values.
+13. The system must support the following parameters:
+    - Namespace (`-n`, `--namespace`, `GOV_NAMESPACE`): The Kubernetes namespace Flux is deployed to (default: `flux-system`)
+    - Source (`-s`, `--source`, `GOV_SOURCE`): The Flux "source" repo (default: `gitops`)
+    - Kustomization (`-k`, `--kustomization`, `GOV_KUSTOMIZATION`): The base Kustomization (default: `flux-listeners`)
+    - Wait time (`--wait`, `GOV_WAIT`): Time in seconds to wait between validations (default: 60)
+14. The system must fail gracefully with appropriate error messages and non-zero exit code when validation checks fail.
+15. The system must be deployable using Kustomize.
 
 ## Non-Goals (Out of Scope)
 
-- Providing a web UI or dashboard.
-- Making changes to the cluster (gov is read-only/validation only).
-- Supporting non-Flux GitOps tools or non-GitHub sources.
-- Managing or rotating credentials.
-- Alerting (handled via log forwarding systems such as FluentBit).
-- Validating additional resource types beyond those specified.
+1. The system will not support Git providers other than GitHub (no GitLab, Bitbucket, etc.).
+2. The system will not support SSH-based Git authentication.
+3. The system will not modify or apply Kubernetes resources; it is validation-only.
+4. The system will not directly send alerts (alerting is handled via external systems like FluentBit).
+5. The system will not validate resources beyond Flux Source and Kustomization objects.
+6. The system will not provide a web UI for visualization of validation results.
+7. The system will not manage or update the Flux installation itself.
 
 ## Design Considerations
 
-- Should be deployed as a Kubernetes deployment/pod using Kustomize.
-- Should use standard Go and Kubernetes libraries for reliability and maintainability.
-- Should be stateless and idempotent between validation cycles.
-- Should be compatible with Prometheus and Kubernetes health checks.
+- The application should follow Go best practices for code organization and project structure.
+- The application should use a clean command-line interface with clear help documentation.
+- Logs should be structured in JSON format to facilitate integration with log aggregation tools.
+- Metrics should follow Prometheus best practices for naming and organization.
 
 ## Technical Considerations
 
-- Must integrate with Kubernetes API for resource validation.
-- Must handle network or API errors gracefully, with retries and clear error logging.
-- Must be compatible with standard Kubernetes RBAC and security practices.
-- Must support both in-cluster and command-line operation modes.
+1. The application should be written in Go using standard Go best practices and security considerations.
+2. The application should use the official Kubernetes Go client library for interacting with the Kubernetes API.
+3. The application should use a common/standard Go Git client library for repository operations.
+4. The application should be containerized following best practices for minimal container images.
+5. The application should handle Kubernetes credentials through standard mechanisms (service account, kubeconfig).
+6. The application should have appropriate resource requests and limits defined in its deployment manifest.
+7. The application should implement proper error handling and retry logic for transient failures.
 
 ## Success Metrics
 
-- 100% of resources defined in the GitOps repo are validated as present and running on the cluster.
-- All configuration errors are logged and result in a non-zero exit code.
-- Prometheus metrics are available and accurate.
-- /healthz endpoint is available and reflects application health.
-- Reduction in configuration drift incidents reported by platform teams.
+1. Zero undetected GitOps deployment failures in monitored clusters.
+2. Mean time to detect (MTTD) GitOps issues under 2 minutes.
+3. Resource utilization under 100MB memory and 0.1 CPU cores during normal operation.
+4. Successful operation in production environments for at least 30 days without restarts.
+5. Complete coverage of all specified validation checks.
 
 ## Open Questions
 
-- Should gov support additional Git providers (e.g., GitLab, Bitbucket) or only GitHub?
-- Are there specific resource types (e.g., CRDs) that should be included in validation?
-- Should there be integration with alerting systems (e.g., Slack, email) for warnings/errors, or is log forwarding sufficient?
-- Should gov support custom validation plugins or rules in the future?
+1. Should the tool support additional Git providers beyond GitHub in future versions?
+2. Should the tool provide webhook capabilities for immediate notification of validation failures?
+3. What specific Prometheus metrics should be exposed for optimal monitoring?
+4. Should the tool validate additional Flux resource types in future versions?
+5. Is there a need for a dry-run mode to validate configurations without affecting the system?
