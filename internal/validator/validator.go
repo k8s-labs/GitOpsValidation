@@ -21,6 +21,7 @@ type Manifest struct {
 // ParseManifests parses all YAML files in the given directory for K8s resources
 func ParseManifests(dir string) ([]Manifest, error) {
 	var manifests []Manifest
+
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

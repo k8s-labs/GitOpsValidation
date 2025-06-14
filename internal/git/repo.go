@@ -2,10 +2,10 @@ package git
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type CloneOptions struct {
@@ -19,10 +19,12 @@ type CloneOptions struct {
 // CloneRepo clones the GitOps repository using provided credentials
 func CloneRepo(opts CloneOptions) error {
 	url := opts.RepoURL
+
 	if opts.User != "" && opts.PAT != "" {
 		// Insert credentials into URL if needed
 		url = fmt.Sprintf("https://%s:%s@%s", opts.User, opts.PAT, url[8:])
 	}
+
 	args := []string{"clone", "--branch", opts.Branch, url, opts.Dir}
 	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
@@ -34,25 +36,27 @@ func CloneRepo(opts CloneOptions) error {
 
 // VerifyRepo checks if the existing repo directory matches the configured repo URL
 func VerifyRepo(dir, expectedURL string) error {
-	gitConfigPath := filepath.Join(dir, ".git", "config")
-	data, err := ioutil.ReadFile(gitConfigPath)
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("git remote get-url failed: %v, output: %s", err, string(output))
 	}
-	if !containsRemoteURL(string(data), expectedURL) {
-		return fmt.Errorf("repo at %s does not match expected remote %s", dir, expectedURL)
+
+	// Compare the actual URL with expected URL (trimming whitespace)
+	actualURL := string(output)
+	actualURL = strings.TrimSpace(actualURL)
+
+	// Compare URLs case-insensitively
+	if !strings.EqualFold(actualURL, expectedURL) {
+		return fmt.Errorf("repo at %s has remote %s, expected %s", dir, actualURL, expectedURL)
 	}
+
 	return nil
 }
 
-// containsRemoteURL checks if the .git/config contains the expected remote URL
-func containsRemoteURL(config, url string) bool {
-	return (len(config) > 0 && url != "" && (string(config) == url || (len(config) > 0 && (filepath.Base(url) == filepath.Base(config)))))
-}
-
 // CheckoutBranch checks out the specified branch in the given repo directory
-func CheckoutBranch(dir, branch string) error {
-	cmd := exec.Command("git", "-C", dir, "checkout", branch)
+func CheckoutBranch(branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git checkout failed: %v, output: %s", err, string(output))
@@ -62,7 +66,7 @@ func CheckoutBranch(dir, branch string) error {
 
 // PullLatest pulls the latest changes from the current branch in the given repo directory
 func PullLatest(dir string) error {
-	cmd := exec.Command("git", "-C", dir, "pull")
+	cmd := exec.Command("git", "pull")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git pull failed: %v, output: %s", err, string(output))
@@ -77,4 +81,17 @@ func ChangeToPath(repoDir, subPath string) error {
 		return fmt.Errorf("specified path does not exist: %s", target)
 	}
 	return os.Chdir(target)
+}
+
+// ExtractRepoName extracts the repository name from a Git URL
+func ExtractRepoName(url string) string {
+	// Handle both HTTPS and SSH urls
+	base := filepath.Base(url)
+
+	// Remove .git suffix if present
+	if len(base) > 4 && base[len(base)-4:] == ".git" {
+		base = base[:len(base)-4]
+	}
+
+	return base
 }
