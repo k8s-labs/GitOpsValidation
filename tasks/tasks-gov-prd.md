@@ -34,13 +34,13 @@
     - [x] 1.4 Document all configuration options
     - [ ] 1.5 Write tests for configuration logic
 - [ ] 2.0 Validate Kubernetes Namespace Existence
-    - [ ] 2.1 Use Kubernetes API to check if the specified namespace exists
-    - [ ] 2.2 Log an error and exit if the namespace does not exist
+    - [x] 2.1 Use Kubernetes API to check if the specified namespace exists
+    - [x] 2.2 Log an error and exit if the namespace does not exist
     - [ ] 2.3 Write unit tests for namespace validation logic
 - [ ] 3.0 Retrieve and Validate Flux Source and Kustomization
     - [ ] 3.1 Use Kubernetes API to retrieve Flux Source in the namespace
     - [ ] 3.2 Retrieve Flux Kustomization in the namespace
-    - [x] 3.3 Extract repo (url), userId, pat, branch from Flux Source and path from Flux Kustomization
+    - [ ] 3.3 Extract repo (url), userId, pat, branch from Flux Source and path from Flux Kustomization
     - [ ] 3.4 Validate that both resources exist and are correctly configured
     - [ ] 3.5 Log errors and exit if resources are missing or misconfigured
     - [ ] 3.6 Write unit tests for Flux resource validation

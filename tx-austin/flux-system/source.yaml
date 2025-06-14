@@ -1,0 +1,17 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: gitops
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  secretRef:
+    name: flux-system
+
+# update these values to your repo and branch
+# run "ds cicd" to update the Cluster manifests
+# run "ds deploy" to push the GitOps changes to GitHub
+
+  url: https://github.com/k8s-labs/GitOpsValidation
+  ref:
+    branch: main
