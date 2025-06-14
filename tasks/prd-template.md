@@ -14,6 +14,10 @@ Provide a brief summary of the product, feature, or change. Include the purpose 
 2. Requirement 2
 3. Requirement 3
 
+## API Endpoints
+- /foo - description of /foo
+- /bar - description of /bar
+
 ## User Stories
 - As a [user], I want [goal], so that [reason].
 - As a [role], I need [feature], so that [benefit].
