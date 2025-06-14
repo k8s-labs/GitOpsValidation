@@ -1,0 +1,16 @@
+{
+  // See https://go.dev/doc/debugging for more info
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch gov",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/gov",
+      "env": {},
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

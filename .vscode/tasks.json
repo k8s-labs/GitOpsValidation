@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build gov",
+            "type": "shell",
+            "command": "go build -o bin/gov ./cmd/gov",
+            "group": "build",
+            "problemMatcher": ["$go"],
+            "detail": "Build the gov application."
+        },
+        {
+            "label": "test gov",
+            "type": "shell",
+            "command": "go test ./...",
+            "group": "test",
+            "problemMatcher": ["$go"],
+            "detail": "Run all Go tests."
+        },
+        {
+            "label": "run gov",
+            "type": "shell",
+            "command": "go run ./cmd/gov",
+            "group": "none",
+            "problemMatcher": ["$go"],
+            "detail": "Run the gov application."
+        }
+    ]
+}
