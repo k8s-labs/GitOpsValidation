@@ -14,8 +14,8 @@ type Config struct {
 	Source        string // CLI/env: Flux Source name
 	Kustomization string // CLI/env: Flux Kustomization name
 	Repo          string // Populated from k8s: Git repository URL
-	UserId        string // Populated from k8s: GitHub user ID
-	PAT           string // Populated from k8s: GitHub Personal Access Token
+	UserName      string // Populated from k8s: GitHub user name
+	Password      string // Populated from k8s: GitHub password or token
 	Branch        string // Populated from k8s: Git branch to use
 	Path          string // Populated from k8s: Path within the repo for manifests
 }
@@ -42,8 +42,8 @@ func LoadConfig() *Config {
 		Kustomization: *kustFlag,
 		// The following fields are populated after reading from k8s:
 		Repo:   "",
-		UserId: "",
-		PAT:    "",
+		UserName: "",
+		Password: "",
 		Branch: "",
 		Path:   "",
 	}

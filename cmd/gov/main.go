@@ -1,20 +1,34 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	   "flag"
+	   "fmt"
+	   "os"
+	   "net/http"
 
-	"gov/internal/config"
-	"gov/internal/logging"
-	"gov/internal/validation"
+	   "gov/internal/config"
+	   "gov/internal/logging"
+	   "gov/internal/validation"
+	   "gov/internal/api"
+	   "gov/internal/version"
 
-	"go.uber.org/zap"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
+	   "go.uber.org/zap"
+	   "k8s.io/client-go/kubernetes"
+	   "k8s.io/client-go/rest"
+	   "k8s.io/client-go/tools/clientcmd"
+	   "context"
+	   "k8s.io/client-go/dynamic"
 )
 
 func main() {
+	versionFlag := flag.Bool("version", false, "Print version and exit")
+	versionShortFlag := flag.Bool("v", false, "Print version and exit (shorthand)")
+	flag.Parse()
+	if *versionFlag || *versionShortFlag {
+		fmt.Println(version.Version)
+		os.Exit(0)
+	}
+
 	if err := logging.InitLogger(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
@@ -29,6 +43,23 @@ func main() {
 		zap.String("kustomization", cfg.Kustomization),
 	)
 
+	// Start HTTP server for /healthz and /version endpoints
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", api.HealthzHandler)
+	mux.HandleFunc("/version", api.VersionHandler)
+
+	go func() {
+		addr := ":8080"
+		logging.Logger.Info("Starting HTTP server", zap.String("addr", addr))
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logging.Logger.Fatal("HTTP server failed", zap.Error(err))
+		}
+	}()
+	
+	select {} // Block forever so the HTTP server stays up
+
+	return
+	
 	// Create Kubernetes client
 	var kubeConfig *rest.Config
 	var err error
@@ -61,6 +92,20 @@ func main() {
 		logging.Logger.Error("Namespace validation failed", zap.Error(err))
 		os.Exit(1)
 	}
+
+	// Create dynamic client for CRDs
+	dynClient, err := dynamic.NewForConfig(kubeConfig)
+	if err != nil {
+		logging.Logger.Error("Failed to create dynamic client", zap.Error(err))
+		os.Exit(1)
+	}
+
+	// Retrieve and populate config from Flux Source
+	if err := validation.PopulateConfigFromFluxSource(context.Background(), dynClient, cfg); err != nil {
+		logging.Logger.Error("Failed to retrieve and populate config from Flux Source", zap.Error(err))
+		os.Exit(1)
+	}
+	logging.Logger.Info("Populated config from Flux Source", zap.String("repo", cfg.Repo), zap.String("branch", cfg.Branch))
 }
 
 func isInCluster() bool {

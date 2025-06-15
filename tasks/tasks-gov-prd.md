@@ -38,7 +38,7 @@
     - [x] 2.2 Log an error and exit if the namespace does not exist
     - [ ] 2.3 Write unit tests for namespace validation logic
 - [ ] 3.0 Retrieve and Validate Flux Source and Kustomization
-    - [ ] 3.1 Use Kubernetes API to retrieve Flux Source in the namespace
+    - [x] 3.1 Use Kubernetes API to retrieve Flux Source in the namespace
     - [ ] 3.2 Retrieve Flux Kustomization in the namespace
     - [ ] 3.3 Extract repo (url), userId, pat, branch from Flux Source and path from Flux Kustomization
     - [ ] 3.4 Validate that both resources exist and are correctly configured
@@ -56,7 +56,7 @@
     - [ ] 5.3 Log results and errors
     - [ ] 5.4 Write unit tests for kustomization and manifest validation
 - [ ] 6.0 Implement /healthz Endpoint for Health Checks
-    - [ ] 6.1 Create HTTP handler for /healthz
+    - [x] 6.1 Create HTTP handler for /healthz
     - [ ] 6.2 Return 200 "pass" on success, error code on failure
     - [ ] 6.3 Integrate with Kubernetes liveness/readiness probes
     - [ ] 6.4 Write tests for /healthz endpoint
