@@ -31,34 +31,43 @@ func main() {
 		zap.String("source", cfg.Source),
 		zap.String("kustomization", cfg.Kustomization),
 		zap.Int("sleep", cfg.Sleep),
+		zap.Bool("daemonMode", cfg.DaemonMode),
 	)
 
-	// Start HTTP server for /healthz and /version endpoints
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", api.HealthzHandler)
-	mux.HandleFunc("/version", api.VersionHandler)
+	if cfg.DaemonMode {
+		// Start HTTP server for /healthz and /version endpoints
+		mux := http.NewServeMux()
+		mux.HandleFunc("/healthz", api.HealthzHandler)
+		mux.HandleFunc("/version", api.VersionHandler)
 
-	go func() {
-		addr := ":8080"
-		logging.Logger.Info("Starting HTTP server", zap.String("addr", addr))
-		if err := http.ListenAndServe(addr, mux); err != nil {
-			logging.Logger.Fatal("HTTP server failed", zap.Error(err))
-		}
-	}()
-	
-	for {
-		if err := ValidateNamespaceExists(cfg.Namespace); err != nil {
-			logging.Logger.Error("Namespace validation failed", zap.Error(err))
-		} else {
-			logging.Logger.Info("Namespace validation succeeded", zap.String("namespace", cfg.Namespace))
-		}
+		go func() {
+			addr := ":8080"
+			logging.Logger.Info("Starting HTTP server", zap.String("addr", addr))
+			if err := http.ListenAndServe(addr, mux); err != nil {
+				logging.Logger.Fatal("HTTP server failed", zap.Error(err))
+			}
+		}()
+		
+		for {
+			validate(cfg)
 
-		logging.Logger.Info("Sleeping", zap.Int("seconds", cfg.Sleep))
+			logging.Logger.Info("Sleeping", zap.Int("seconds", cfg.Sleep))
 
-		// Sleep for cfg.Sleep seconds
-		select {
-			case <-time.After(time.Duration(cfg.Sleep) * time.Second):
+			// Sleep for cfg.Sleep seconds
+			select {
+				case <-time.After(time.Duration(cfg.Sleep) * time.Second):
+			}
 		}
+	} else {
+		validate(cfg)
+	}
+}
+
+func validate(cfg *config.Config) {
+	if err := ValidateNamespaceExists(cfg.Namespace); err != nil {
+		logging.Logger.Error("Namespace validation failed", zap.Error(err))
+	} else {
+		logging.Logger.Info("Namespace validation succeeded", zap.String("namespace", cfg.Namespace))
 	}
 }
 
