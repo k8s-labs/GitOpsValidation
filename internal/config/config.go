@@ -13,6 +13,7 @@ type Config struct {
 	Namespace     string // CLI/env: Kubernetes namespace to validate
 	Source        string // CLI/env: Flux Source name
 	Kustomization string // CLI/env: Flux Kustomization name
+	Sleep         int    // CLI/env: Sleep duration in seconds between validations (default 60)
 	Repo          string // Populated from k8s: Git repository URL
 	UserName      string // Populated from k8s: GitHub user name
 	Password      string // Populated from k8s: GitHub password or token
@@ -40,6 +41,8 @@ func LoadConfig() *Config {
 		Namespace:     *nsFlag,
 		Source:        *srcFlag,
 		Kustomization: *kustFlag,
+		Sleep:         60,
+
 		// The following fields are populated after reading from k8s:
 		Repo:   "",
 		UserName: "",

@@ -1,22 +1,23 @@
 package main
 
 import (
-	   "flag"
-	   "fmt"
-	   "os"
-	   "net/http"
+	"flag"
+	"fmt"
+	"os"
+	"net/http"
+	"time"
 
-	   "gov/internal/config"
-	   "gov/internal/logging"
-	   "gov/internal/validation"
-	   "gov/internal/api"
-	   "gov/internal/version"
+	"gov/internal/config"
+	"gov/internal/logging"
+	"gov/internal/validation"
+	"gov/internal/api"
+	"gov/internal/version"
 
-	   "go.uber.org/zap"
-	   "k8s.io/client-go/rest"
-	   "k8s.io/client-go/tools/clientcmd"
-	//    "k8s.io/client-go/dynamic"
-	   "k8s.io/client-go/kubernetes"
+	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+//    "k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 func main() {
@@ -42,8 +43,6 @@ func main() {
 		zap.String("kustomization", cfg.Kustomization),
 	)
 
-	ValidateNamespaceExists(cfg.Namespace)
-	
 	// Start HTTP server for /healthz and /version endpoints
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", api.HealthzHandler)
@@ -57,8 +56,20 @@ func main() {
 		}
 	}()
 	
-	// Block forever so the HTTP server stays up
-	select {}
+	for {
+		if err := ValidateNamespaceExists(cfg.Namespace); err != nil {
+			logging.Logger.Error("Namespace validation failed", zap.Error(err))
+		} else {
+			logging.Logger.Info("Namespace validation succeeded", zap.String("namespace", cfg.Namespace))
+		}
+
+		logging.Logger.Info("Sleeping", zap.Int("seconds", cfg.Sleep))
+
+		// Sleep for cfg.Sleep seconds
+		select {
+			case <-time.After(time.Duration(cfg.Sleep) * time.Second):
+		}
+	}
 }
 
 // isInCluster checks if the application is running inside a Kubernetes cluster
@@ -115,8 +126,6 @@ func ValidateNamespaceExists(namespace string) error {
 	if err := validation.ValidateNamespaceExists(clientset, namespace); err != nil {
 		return fmt.Errorf("namespace validation failed: %w", err)
 	}
-
-	logging.Logger.Info("namespace validation passed", zap.String("namespace", namespace))
 
 	return nil
 }
