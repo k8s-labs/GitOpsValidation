@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"net/http"
@@ -11,23 +10,15 @@ import (
 	"gov/internal/logging"
 	"gov/internal/validation"
 	"gov/internal/api"
-	"gov/internal/version"
 
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-//    "k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
 func main() {
-	versionFlag := flag.Bool("version", false, "Print version and exit")
-	versionShortFlag := flag.Bool("v", false, "Print version and exit (shorthand)")
-	flag.Parse()
-	if *versionFlag || *versionShortFlag {
-		fmt.Println(version.Version)
-		os.Exit(0)
-	}
+	cfg := config.LoadConfig()
 
 	if err := logging.InitLogger(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
@@ -35,12 +26,11 @@ func main() {
 	}
 	defer logging.SyncLogger()
 
-	cfg := config.LoadConfig()
-
 	logging.Logger.Info("gov starting",
 		zap.String("namespace", cfg.Namespace),
 		zap.String("source", cfg.Source),
 		zap.String("kustomization", cfg.Kustomization),
+		zap.Int("sleep", cfg.Sleep),
 	)
 
 	// Start HTTP server for /healthz and /version endpoints

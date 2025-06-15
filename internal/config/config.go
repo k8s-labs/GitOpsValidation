@@ -2,7 +2,9 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"gov/internal/version"
 )
 
 // Config holds all configuration for the gov application
@@ -34,14 +36,22 @@ func LoadConfig() *Config {
 		nsFlag   = flag.String("namespace", getEnvOrDefault("GOV_NAMESPACE", "flux-system"), "Kubernetes namespace to validate")
 		srcFlag  = flag.String("source", getEnvOrDefault("GOV_SOURCE", "gitops"), "Flux Source name")
 		kustFlag = flag.String("kustomization", getEnvOrDefault("GOV_KUSTOMIZATION", "flux-listeners"), "Flux Kustomization name")
+		sleepFlag = flag.Int("sleep", 60, "Sleep duration in seconds between validations")
+		versionFlag = flag.Bool("version", false, "Print version and exit")
+		versionShortFlag = flag.Bool("v", false, "Print version and exit (shorthand)")
 	)
 	flag.Parse()
+
+	if *versionFlag || *versionShortFlag {
+		fmt.Println(version.Version)
+		os.Exit(0)
+	}
 
 	cfg := &Config{
 		Namespace:     *nsFlag,
 		Source:        *srcFlag,
 		Kustomization: *kustFlag,
-		Sleep:         60,
+		Sleep:         *sleepFlag,
 
 		// The following fields are populated after reading from k8s:
 		Repo:   "",
@@ -50,5 +60,6 @@ func LoadConfig() *Config {
 		Branch: "",
 		Path:   "",
 	}
+
 	return cfg
 }
