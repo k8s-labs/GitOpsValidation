@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gov
-  namespace: flux-system
+  namespace: gitops
   labels:
     app: gov
 spec:
