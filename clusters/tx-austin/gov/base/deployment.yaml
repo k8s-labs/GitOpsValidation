@@ -15,10 +15,11 @@ spec:
       labels:
         app: gov
     spec:
+      serviceAccountName: gov
       containers:
         - name: gov
-          image: ghcr.io/k8s-labs/gov:latest # tag will be patched in overlay
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/k8s-labs/gov:0.0.1
+          imagePullPolicy: Always
           resources:
             requests:
               memory: "64Mi"

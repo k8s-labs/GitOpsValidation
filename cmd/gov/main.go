@@ -15,8 +15,8 @@ import (
 	   "go.uber.org/zap"
 	   "k8s.io/client-go/rest"
 	   "k8s.io/client-go/tools/clientcmd"
-	   "context"
-	   "k8s.io/client-go/dynamic"
+	//    "k8s.io/client-go/dynamic"
+	   "k8s.io/client-go/kubernetes"
 )
 
 func main() {
@@ -42,6 +42,8 @@ func main() {
 		zap.String("kustomization", cfg.Kustomization),
 	)
 
+	ValidateNamespaceExists(cfg.Namespace)
+	
 	// Start HTTP server for /healthz and /version endpoints
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", api.HealthzHandler)
@@ -59,50 +61,6 @@ func main() {
 	select {}
 }
 
-func setupKubernetesAndPopulateConfig(cfg *config.Config) error {
-	var dynClient dynamic.Interface
-
-	if isInCluster() {
-		logging.Logger.Info("Running in Kubernetes cluster")
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			return fmt.Errorf("failed to create in-cluster config: %w", err)
-		}
-		dynClient, err = dynamic.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("failed to create dynamic client: %w", err)
-		}
-	} else {
-		logging.Logger.Info("Running outside Kubernetes cluster, using kubeconfig")
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			kubeconfig = clientcmd.RecommendedHomeFile
-		}
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return fmt.Errorf("failed to build kubeconfig: %w", err)
-		}
-		dynClient, err = dynamic.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("failed to create dynamic client: %w", err)
-		}
-	}
-
-	ctx := context.Background()
-	if err := validation.PopulateConfigFromFluxSource(ctx, dynClient, cfg); err != nil {
-		return fmt.Errorf("failed to populate config from Flux source: %w", err)
-	}
-
-	logging.Logger.Info("Configuration populated successfully",
-		zap.String("repo", cfg.Repo),
-		zap.String("branch", cfg.Branch),
-		zap.String("userName", mask(cfg.UserName)),
-		zap.String("password", mask(cfg.Password)),
-	)
-
-	return nil
-}
-
 // isInCluster checks if the application is running inside a Kubernetes cluster
 func isInCluster() bool {
 	// Kubernetes injects this file in pods
@@ -115,4 +73,50 @@ func mask(s string) string {
 		return "****"
 	}
 	return s[:2] + "****" + s[len(s)-2:]
+}
+
+func ValidateNamespaceExists(namespace string) error {
+	var clientset *kubernetes.Clientset
+
+	if isInCluster() {
+		logging.Logger.Info("Running in Kubernetes cluster")
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			return fmt.Errorf("failed to create in-cluster config: %w", err)
+		}
+		//dynClient, err := dynamic.NewForConfig(config)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to create dynamic client: %w", err)
+		// }
+		clientset, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes clientset: %w", err)
+		}
+	} else {
+		logging.Logger.Info("Running outside Kubernetes cluster, using kubeconfig")
+		kubeconfig := os.Getenv("KUBECONFIG")
+		if kubeconfig == "" {
+			kubeconfig = clientcmd.RecommendedHomeFile
+		}
+		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return fmt.Errorf("failed to build kubeconfig: %w", err)
+		}
+		// dynClient, err := dynamic.NewForConfig(config)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to create dynamic client: %w", err)
+		// }
+		clientset, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes clientset: %w", err)
+		}
+	}
+
+	if err := validation.ValidateNamespaceExists(clientset, namespace); err != nil {
+		return fmt.Errorf("namespace validation failed: %w", err)
+	}
+
+	logging.Logger.Info("namespace validation passed", zap.String("namespace", namespace))
+
+	return nil
 }

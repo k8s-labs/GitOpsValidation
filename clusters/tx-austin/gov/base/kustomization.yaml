@@ -3,5 +3,6 @@ kind: Kustomization
 namespace: flux-system
 resources:
   - namespace.yaml
+  - rbac.yaml
   - service.yaml
   - deployment.yaml
