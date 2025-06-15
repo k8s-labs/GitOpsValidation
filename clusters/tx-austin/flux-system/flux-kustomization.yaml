@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./tx-austin/flux-system/listeners
+  path: ./clusters/tx-austin/flux-system/listeners
   prune: true
   sourceRef:
     kind: GitRepository
