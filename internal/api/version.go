@@ -10,8 +10,8 @@ import (
 
 // VersionHandler responds with 200 OK and the version string.
 func VersionHandler(w http.ResponseWriter, r *http.Request) {
-	logging.Logger.Info("/version request",
-		zap.String("method", r.Method),
+	logging.Logger.Info(r.Method,
+		zap.String("path", "/version"),
 		zap.String("remote", r.RemoteAddr),
 		zap.String("userAgent", r.UserAgent()),
 	)
