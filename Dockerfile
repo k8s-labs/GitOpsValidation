@@ -29,8 +29,7 @@ COPY --from=builder /app/gov /app/gov
 # Set permissions
 RUN chown govuser:govuser /app/gov
 USER govuser
-
-# Expose healthz and metrics ports
+ENV GOV_DAEMON true
 EXPOSE 8080
 
 ENTRYPOINT ["/app/gov"]
