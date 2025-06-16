@@ -40,7 +40,7 @@ func LoadConfig() *Config {
 		srcFlag  = flag.String("source", getEnvOrDefault("GOV_SOURCE", "gitops"), "Flux Source name")
 		srcShortFlag = flag.String("s", "", "Flux Source name (shorthand)")
 
-		kustFlag = flag.String("kustomization", getEnvOrDefault("GOV_KUSTOMIZATION", "flux-listeners"), "Flux Kustomization name")
+		kustFlag = flag.String("kustomization", getEnvOrDefault("GOV_KUSTOMIZATION", "gitops"), "Flux Kustomization name")
 		kustShortFlag = flag.String("k", "", "Flux Kustomization name (shorthand)")
 
 		sleepFlag = flag.Int("sleep", 60, "Sleep duration in seconds between validations")

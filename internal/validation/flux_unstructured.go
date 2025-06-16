@@ -23,3 +23,17 @@ func RetrieveFluxSourceUnstructured(ctx context.Context, dynClient dynamic.Inter
 	}
 	return resource, nil
 }
+
+// RetrieveFluxKustomizationUnstructured fetches a Flux Kustomization resource in the given namespace using the dynamic client.
+func RetrieveFluxKustomizationUnstructured(ctx context.Context, dynClient dynamic.Interface, namespace, kustomizationName string) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "kustomize.toolkit.fluxcd.io",
+		Version:  "v1beta2",
+		Resource: "kustomizations",
+	}
+	resource, err := dynClient.Resource(gvr).Namespace(namespace).Get(ctx, kustomizationName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Flux Kustomization '%s' in namespace '%s': %w", kustomizationName, namespace, err)
+	}
+	return resource, nil
+}

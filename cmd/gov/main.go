@@ -5,6 +5,7 @@ import (
 	"os"
 	"net/http"
 	"time"
+	"context"
 
 	"gov/internal/config"
 	"gov/internal/logging"
@@ -12,6 +13,7 @@ import (
 	"gov/internal/api"
 
 	"go.uber.org/zap"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/kubernetes"
@@ -60,6 +62,54 @@ func main() {
 		}
 	} else {
 		validate(cfg)
+
+		getConfigFromK8s(cfg)
+
+		logging.Logger.Info("config",
+			zap.String("repo", cfg.Repo),
+			zap.String("user", cfg.UserName),
+			zap.String("PAT", cfg.Password),
+			zap.String("path", cfg.Path),
+		)
+	}
+}
+
+func getConfigFromK8s(cfg *config.Config) {
+	var restConfig *rest.Config
+	var err error
+
+	if isInCluster() {
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			logging.Logger.Error("Failed to create in-cluster config", zap.Error(err))
+			os.Exit(1)
+		}
+	} else {
+		kubeconfig := os.Getenv("KUBECONFIG")
+		if kubeconfig == "" {
+			kubeconfig = clientcmd.RecommendedHomeFile
+		}
+		restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			logging.Logger.Error("Failed to build kubeconfig", zap.Error(err))
+			os.Exit(1)
+		}
+	}
+
+	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		logging.Logger.Error("Failed to create dynamic client", zap.Error(err))
+		os.Exit(1)
+	}
+
+	if err := validation.PopulateConfigFromFluxSource(context.Background(), dynClient, cfg); err != nil {
+		logging.Logger.Error("Failed to populate config from Flux Source", zap.Error(err))
+		os.Exit(1)
+	}
+
+	if err := validation.PopulateConfigFromFluxKustomization(context.Background(), dynClient, cfg); err != nil {
+		logging.Logger.Error("Failed to populate config from Flux Kustomization", zap.Error(err))
+		os.Exit(1)
 	}
 }
 

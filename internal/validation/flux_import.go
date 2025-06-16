@@ -99,3 +99,22 @@ func ExtractGitCredentialsFromSecret(ctx context.Context, dynClient dynamic.Inte
 
 	return nil
 }
+
+// PopulateConfigFromFluxKustomization retrieves the Flux Kustomization and updates cfg.Path with the path from its spec.
+func PopulateConfigFromFluxKustomization(ctx context.Context, dynClient dynamic.Interface, cfg *config.Config) error {
+	kust, err := RetrieveFluxKustomizationUnstructured(ctx, dynClient, cfg.Namespace, cfg.Kustomization)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve Flux Kustomization: %w", err)
+	}
+
+	spec, ok := kust.Object["spec"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("spec not found in Kustomization object")
+	}
+	path, ok := spec["path"].(string)
+	if !ok {
+		return fmt.Errorf("path not found in Kustomization spec")
+	}
+	cfg.Path = path
+	return nil
+}
