@@ -36,6 +36,15 @@ func main() {
 		zap.Bool("daemonMode", cfg.DaemonMode),
 	)
 
+	getConfigFromK8s(cfg)
+
+	logging.Logger.Info("config",
+		zap.String("repo", cfg.Repo),
+		zap.String("user", cfg.UserName),
+		zap.String("PAT", cfg.Password),
+		zap.String("path", cfg.Path),
+	)
+
 	if cfg.DaemonMode {
 		// Start HTTP server for /healthz and /version endpoints
 		mux := http.NewServeMux()
@@ -62,41 +71,41 @@ func main() {
 		}
 	} else {
 		validate(cfg)
-
-		getConfigFromK8s(cfg)
-
-		logging.Logger.Info("config",
-			zap.String("repo", cfg.Repo),
-			zap.String("user", cfg.UserName),
-			zap.String("PAT", cfg.Password),
-			zap.String("path", cfg.Path),
-		)
 	}
 }
 
-func getConfigFromK8s(cfg *config.Config) {
-	var restConfig *rest.Config
-	var err error
-
-	if isInCluster() {
-		restConfig, err = rest.InClusterConfig()
-		if err != nil {
-			logging.Logger.Error("Failed to create in-cluster config", zap.Error(err))
-			os.Exit(1)
-		}
-	} else {
+func GetRestConfig() (*rest.Config, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
 		kubeconfig := os.Getenv("KUBECONFIG")
 		if kubeconfig == "" {
 			kubeconfig = clientcmd.RecommendedHomeFile
 		}
 		restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			logging.Logger.Error("Failed to build kubeconfig", zap.Error(err))
-			os.Exit(1)
+			return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
 		}
 	}
 
+	return restConfig, nil
+}
+
+func GetDynamicClient() (*dynamic.DynamicClient, error) {
+	restConfig, err := GetRestConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rest config: %w", err)
+	}
+
 	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	return dynClient, nil
+}
+
+func getConfigFromK8s(cfg *config.Config) {
+	dynClient, err := GetDynamicClient()
 	if err != nil {
 		logging.Logger.Error("Failed to create dynamic client", zap.Error(err))
 		os.Exit(1)
@@ -121,13 +130,6 @@ func validate(cfg *config.Config) {
 	}
 }
 
-// isInCluster checks if the application is running inside a Kubernetes cluster
-func isInCluster() bool {
-	// Kubernetes injects this file in pods
-	_, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token")
-	return err == nil
-}
-
 func mask(s string) string {
 	if len(s) <= 4 {
 		return "****"
@@ -135,45 +137,104 @@ func mask(s string) string {
 	return s[:2] + "****" + s[len(s)-2:]
 }
 
-func ValidateNamespaceExists(namespace string) error {
-	var clientset *kubernetes.Clientset
+func GetClientSet() (*kubernetes.Clientset, error) {
+	config, err := GetRestConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
+	}
 
-	if isInCluster() {
-		logging.Logger.Info("Running in Kubernetes cluster")
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			return fmt.Errorf("failed to create in-cluster config: %w", err)
-		}
-		//dynClient, err := dynamic.NewForConfig(config)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to create dynamic client: %w", err)
-		// }
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("failed to create kubernetes clientset: %w", err)
-		}
-	} else {
-		logging.Logger.Info("Running outside Kubernetes cluster, using kubeconfig")
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			kubeconfig = clientcmd.RecommendedHomeFile
-		}
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return fmt.Errorf("failed to build kubeconfig: %w", err)
-		}
-		// dynClient, err := dynamic.NewForConfig(config)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to create dynamic client: %w", err)
-		// }
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("failed to create kubernetes clientset: %w", err)
-		}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	return clientset, nil
+}
+
+func ValidateNamespaceExists(namespace string) error {
+	clientset, err := GetClientSet()
+	if err != nil {
+		return fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
 	if err := validation.ValidateNamespaceExists(clientset, namespace); err != nil {
 		return fmt.Errorf("namespace validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, "default", "kubernetes", "ClusterIP", 443); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, namespace, "notification-controller", "ClusterIP", 80); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, namespace, "source-controller", "ClusterIP", 80); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, namespace, "webhook-receiver", "ClusterIP", 80); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, namespace, "helm-controller"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, namespace, "kustomize-controller"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, namespace, "notification-controller"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidateNamespaceExists(clientset, "kube-system"); err != nil {
+		return fmt.Errorf("namespace validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, "kube-system", "metrics-server", "ClusterIP", 443); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, "kube-system", "kube-dns", "ClusterIP", 53); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, "kube-system", "coredns"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, "kube-system", "local-path-provisioner"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, "kube-system", "metrics-server"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidateNamespaceExists(clientset, "heartbeat"); err != nil {
+		return fmt.Errorf("namespace validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, "heartbeat", "heartbeat", "ClusterIP", 8080); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, "heartbeat", "heartbeat"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
+	}
+
+	if err := validation.ValidateNamespaceExists(clientset, "timeclock"); err != nil {
+		return fmt.Errorf("namespace validation failed: %w", err)
+	}
+
+	if err := validation.ValidateServiceInNamespace(clientset, "timeclock", "timeclock", "ClusterIP", 8080); err != nil {
+		return fmt.Errorf("service validation failed: %w", err)
+	}
+
+	if err := validation.ValidatePodWithPrefixRunning(clientset, "timeclock", "timeclock"); err != nil {
+		return fmt.Errorf("pod validation failed: %w", err)
 	}
 
 	return nil

@@ -14,7 +14,7 @@ import (
 func RetrieveFluxSourceUnstructured(ctx context.Context, dynClient dynamic.Interface, namespace, sourceName string) (*unstructured.Unstructured, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "source.toolkit.fluxcd.io",
-		Version:  "v1beta2",
+		Version:  "v1",
 		Resource: "gitrepositories",
 	}
 	resource, err := dynClient.Resource(gvr).Namespace(namespace).Get(ctx, sourceName, metav1.GetOptions{})
@@ -28,7 +28,7 @@ func RetrieveFluxSourceUnstructured(ctx context.Context, dynClient dynamic.Inter
 func RetrieveFluxKustomizationUnstructured(ctx context.Context, dynClient dynamic.Interface, namespace, kustomizationName string) (*unstructured.Unstructured, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "kustomize.toolkit.fluxcd.io",
-		Version:  "v1beta2",
+		Version:  "v1",
 		Resource: "kustomizations",
 	}
 	resource, err := dynClient.Resource(gvr).Namespace(namespace).Get(ctx, kustomizationName, metav1.GetOptions{})
