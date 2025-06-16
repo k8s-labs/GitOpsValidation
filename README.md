@@ -9,12 +9,13 @@ This document contains the prompts to generate the PRD and tasks for generating 
 
 - Use GPT4.1 or Sonnet 3.7
 - Use the following prompt
-  - Create a PRD and save to ./tasks/gov-prd.md using ./tasks/create-prd.mdc and ./tasks/gov-template.md to define the steps and structure of the PRD. Use ./gov.md for the features to document. Use logical assumptions for any missing information.
+  - Create a PRD for the "gov" feature using ./gov.md for the features
+    - use ./tasks/create-prd.mdc to define the steps and structure of the PRD
 
 ## Generate Task List from PRD
 
 - Prompt
-  - use ./tasks/gov-prd.md and create tasks and subtasks using ./tasks/generate-tasks.mdc
+  - use ./tasks/prd-gov.md to create tasks and subtasks using ./tasks/generate-tasks.mdc
 
 ## Generate Code
 
