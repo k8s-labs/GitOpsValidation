@@ -49,8 +49,7 @@
   - [ ] 4.5 Add unit tests for API endpoints
 
 - [ ] 5.0 Implement core validation logic for Kubernetes resources
-  - stub out this functionality for now - create a validation function that logs an is valid log
-  - [ ] 5.1 Define validation interface and types for resources (namespace, service, deployment, pod, configmap, secrets, CRDs)
+  - [ ] 5.1 Define validation interface and types for resources (namespace, service, pod)
   - [ ] 5.2 Implement validation functions for each resource type
   - [ ] 5.3 Integrate validation logic into main application flow
   - [ ] 5.4 Add unit tests for validation logic
