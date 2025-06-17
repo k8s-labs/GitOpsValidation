@@ -18,6 +18,7 @@
 
 ## Tasks
 
+- start in the ~/gov directory
 
 - [ ] 1.0 Set up Go project structure and dependencies
   - [ ] 1.1 Initialize Go module and tidy dependencies in `go.mod`
