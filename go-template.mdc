@@ -1,0 +1,19 @@
+# Create a new Go app from an existing repo
+
+If the Name of the new application is not specified in the prompt, ask for the Name
+
+If the working directory is not specified in the prompt, ask for the directory
+
+Use the {Name} and {Directory} provided in the prompt
+
+Using the bartr branch of the https://github.com/k8s-labs/GitOpsValidation repo
+
+Create a new Go application called {Name} from the "gov" Go Application in the repo
+
+Make sure to include the go.mod file and rename the module to {Name} and the cmd/gov to {Name}
+
+Make sure to include all files and directories under cmd and internal
+
+Generate the files in the {Directory} specified in the prompt
+
+After generating the files, run go mod tidy, make sure go build works, and make sure all tests pass.
