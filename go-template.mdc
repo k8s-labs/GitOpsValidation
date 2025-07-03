@@ -6,20 +6,28 @@ If the working directory is not specified in the prompt, ask for the directory
 If the docker repository (like ghcr.io/k8s-labs/{Name}) isn't specified, ask for the repository
 the default version is 0.0.1 and should be used in the docker image tag - i.e. {Name}:0.0.1
 
+Make sure you prompt the user for all needed information before continuing.
+
 Using the bartr branch of this repo - https://github.com/k8s-labs/GitOpsValidation
 
 Create a new Go application called {Name} from the "gov" Go Application in the repo
 
-Make sure to include the go.mod file and rename the module to {Name} and the cmd/gov to {Name}
+Make sure to include the go.mod file and rename the module to {Name} and the cmd/gov to cmd/{Name}
 
 Make sure to include all files and directories under cmd and internal
 
 Update the dockerfile with the new {Name}
 
-Update the deploy directory to use the specified docker registry and {Name}
+Update the deploy directory to use the specified docker registry, {Name}, and {Namespace} - make sure to check every YAML file
 
 Generate the files in the {Directory} specified in the prompt
 
 After generating the files, run go mod tidy, make sure go build works, and make sure all tests pass.
 
 Run docker build with the tag (-t) of the docker registry/name:version - example - ghcr.io/k8s-labs/validate:0.0.1
+
+Search the entire workspace for all YAML files and update every instance of the namespace
+Update all references to the application name and Docker image as needed.
+After making changes, provide a summary of all files updated and confirm that every YAML file is consistent.
+Do not stop after the first change—verify and update every relevant file.
+At the end, output a checklist showing each requirement and whether it was completed.
