@@ -1,12 +1,12 @@
-# Create a new Go app from an existing repo
+# Create a new Go app from this repo
 
 If the Name of the new application is not specified in the prompt, ask for the Name
-
+if the Namespace isn't specified, ask for the Namespace
 If the working directory is not specified in the prompt, ask for the directory
+If the docker repository (like ghcr.io/k8s-labs/{Name}) isn't specified, ask for the repository
+the default version is 0.0.1 and should be used in the docker image tag - i.e. {Name}:0.0.1
 
-Use the {Name} and {Directory} provided in the prompt
-
-Using the bartr branch of the https://github.com/k8s-labs/GitOpsValidation repo
+Using the bartr branch of this repo - https://github.com/k8s-labs/GitOpsValidation
 
 Create a new Go application called {Name} from the "gov" Go Application in the repo
 
@@ -14,6 +14,12 @@ Make sure to include the go.mod file and rename the module to {Name} and the cmd
 
 Make sure to include all files and directories under cmd and internal
 
+Update the dockerfile with the new {Name}
+
+Update the deploy directory to use the specified docker registry and {Name}
+
 Generate the files in the {Directory} specified in the prompt
 
 After generating the files, run go mod tidy, make sure go build works, and make sure all tests pass.
+
+Run docker build with the tag (-t) of the docker registry/name:version - example - ghcr.io/k8s-labs/validate:0.0.1
