@@ -18,7 +18,7 @@ Make sure to include the go.mod file and rename the module to {Name} and use cmd
 
 Make sure to include all files and directories under cmd and internal
 
-Update the Dockerfile with the new {Name}
+Copy the Dockerfile and update with the new {Name}
 
 Update the deploy directory to use the specified docker registry, {Name}, and {Namespace} - make sure to check every YAML file
 
