@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gov
+  namespace: gitops
+  labels:
+    app: gov
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gov
+  template:
+    metadata:
+      labels:
+        app: gov
+    spec:
+      serviceAccountName: gov
+      containers:
+        - name: gov
+          image: ghcr.io/k8s-labs/gov:0.0.1
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
